@@ -563,7 +563,7 @@
     <div class="section-divider">
       <div class="section-label">Services</div>
       <div class="services-grid">
-        <div class="service-btn" onclick="addSale('Hair Cut')">
+        <div class="service-btn" onclick="addSale('Hair Cut', 100)">
           <div class="svc-name">Hair Cut</div>
           <div class="svc-price">₹100</div>
         </div>
@@ -620,7 +620,7 @@
 <div id="confirm-overlay">
   <div class="confirm-card">
     <h3>Reset Day?</h3>
-    <p>This will reset current totals only. History will stay saved in this mobile.</p>
+    <p>This will reset current totals only. History will stay saved.</p>
     <div class="confirm-btns">
       <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
       <button class="confirm-ok" onclick="doReset()">Reset</button>
@@ -633,7 +633,7 @@
   <div class="history-card">
     <div class="history-head">
       <h3>History</h3>
-      <p>Phone database se sales history</p>
+      <p>Google Sheets se sales history</p>
     </div>
     <div class="history-body">
       <div class="history-tabs">
@@ -659,6 +659,7 @@
   const PASSWORD = "123456";
   const SALON_NAME = "Prince Hair Salon";
   const SALON_ADDR = "Shri Muktsar Sahib, Kotkpura Road";
+  const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzIzQh1iEQ2-K3ZZ3jpBz8m41G03HBOiN90VNwtiTi86y5p-Lir5AdHDCm0aV1TmwKn/exec";
   const DB_NAME = "prince-hair-salon-db";
   const DB_VERSION = 1;
   const SALES_STORE = "sales";
@@ -717,6 +718,18 @@
     });
   }
 
+  // ── GOOGLE SHEETS ──
+  async function sendToSheets(data) {
+    try {
+      await fetch(SHEETS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    } catch(e) {}
+  }
+
   // ── PERSISTENCE ──
   function loadState() {
     const saved = localStorage.getItem("phs_state");
@@ -732,7 +745,9 @@
       };
     } catch(e) {}
   }
+
   function saveState() { localStorage.setItem("phs_state", JSON.stringify(state)); }
+
   function updateDisplay() {
     document.getElementById("disp-total").textContent = "₹" + state.total;
     document.getElementById("disp-customers").textContent = state.customers;
@@ -740,239 +755,6 @@
     document.getElementById("disp-online").textContent = "₹" + state.online;
   }
 
-  // ── LOGIN ──
-  function doLogin() {
-    const val = document.getElementById("login-input").value;
-    if (val === PASSWORD) {
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("main-app").classList.add("visible");
-      loadState(); updateDisplay();
-    } else {
-      document.getElementById("login-error").textContent = "Incorrect password. Try again.";
-      document.getElementById("login-input").value = "";
-    }
-  }
-  document.getElementById("login-input").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
-  document.getElementById("custom-price").addEventListener("input", syncCustomPriceDisplay);
-
-  function syncCustomPriceDisplay() {
-    const priceInput = document.getElementById("custom-price");
-    const priceLabel = document.getElementById("custom-price-display") || document.querySelector(".services-grid .service-btn .svc-price");
-    if (!priceInput || !priceLabel) return;
-    priceLabel.textContent = priceInput.value.trim() ? "Rs." + priceInput.value.trim() : "Custom";
-  }
-  syncCustomPriceDisplay();
-
-  // ── ADD SALE ──
-  function addSale(service, price) {
-    if (price == null) {
-      const enteredPrice = Number(document.getElementById("custom-price").value);
-      if (!Number.isFinite(enteredPrice) || enteredPrice <= 0) {
-        showToast("Please enter a valid price");
-        return;
-      }
-      price = enteredPrice;
-    }
-
-    const mode  = document.getElementById("payment-mode").value;
-    const name  = document.getElementById("cust-name").value.trim() || "Guest";
-    const phone = document.getElementById("cust-phone").value.trim();
-
-    state.total += price;
-    state.customers += 1;
-    if (mode === "Cash") state.cash += price;
-    else state.online += price;
-
-    const entry = { service, price, mode, name, phone, time: new Date().toISOString() };
-    state.history.push(entry);
-    saveState();
-    updateDisplay();
-    sendToSheets({ type: "sale", service, price, mode, name, phone });
-    showToast("+" + service + " ₹" + price + " (" + mode + ")");
-
-    lastSale = entry;
-    openBillSheet(entry);
-
-    // Clear customer fields for next customer
-    document.getElementById("cust-name").value = "";
-    document.getElementById("cust-phone").value = "";
-    document.getElementById("custom-price").value = "";
-    syncCustomPriceDisplay();
-  }
-
-  // ── UNDO ──
-  function undoLast() {
-    if (state.history.length === 0) { showToast("Nothing to undo"); return; }
-    const last = state.history.pop();
-    state.total -= last.price;
-    state.customers -= 1;
-    if (last.mode === "Cash") state.cash -= last.price;
-    else state.online -= last.price;
-    saveState(); updateDisplay();
-    showToast("Undone: " + last.service);
-  }
-
-  // ── RESET ──
-  function confirmReset() { document.getElementById("confirm-overlay").classList.add("visible"); }
-  function closeConfirm()  { document.getElementById("confirm-overlay").classList.remove("visible"); }
-  async function doReset() {
-    closeConfirm();
-    await sendToSheets({ type: "report", total: state.total, customers: state.customers, cash: state.cash, online: state.online });
-    state = { total: 0, customers: 0, cash: 0, online: 0, history: [] };
-    saveState(); updateDisplay();
-    showToast("Day reset. Report sent!");
-  }
-
-  // ── GOOGLE SHEETS ──
-  async function sendToSheets(data) {
-    if (!SHEETS_URL) return;
-    try {
-      await fetch(SHEETS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-    } catch(e) {}
-  }
-
-  // ── BILL SHEET ──
-  function openBillSheet(e) {
-    const dt = new Date(e.time);
-    const ds = dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
-    const ts = dt.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
-    const ph = e.phone || "—";
-    document.getElementById("bill-summary-text").innerHTML =
-      "<strong>Customer:</strong> " + e.name + "<br>" +
-      "<strong>Mobile:</strong> " + ph + "<br>" +
-      "<strong>Service:</strong> " + e.service + "<br>" +
-      "<strong>Amount:</strong> ₹" + e.price + "<br>" +
-      "<strong>Payment:</strong> " + e.mode + "<br>" +
-      "<strong>Date/Time:</strong> " + ds + " " + ts;
-    document.getElementById("bill-overlay").classList.add("visible");
-  }
-  function closeBillSheet() { document.getElementById("bill-overlay").classList.remove("visible"); }
-
-  // ── WHATSAPP ──
-  function openWhatsApp() {
-    if (!lastSale) return;
-    const phone = lastSale.phone;
-    if (!phone || phone.length < 10) { showToast("No valid mobile number entered"); return; }
-    const name = lastSale.name !== "Guest" ? lastSale.name : "Customer";
-    const dt = new Date(lastSale.time);
-    const ds = dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
-    const ts = dt.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
-    const msg =
-      "\u270c\ufe0f *" + SALON_NAME + "*\n" +
-      SALON_ADDR + "\n" +
-      "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" +
-      "\ud83d\udc88 *Bill Receipt*\n\n" +
-      "\ud83d\udc64 Customer : " + name + "\n" +
-      "\ud83d\udd27 Service  : " + lastSale.service + "\n" +
-      "\ud83d\udcb0 Amount   : \u20b9" + lastSale.price + "\n" +
-      "\ud83d\udcb3 Payment  : " + lastSale.mode + "\n" +
-      "\ud83d\udcc5 Date     : " + ds + "\n" +
-      "\u23f0 Time     : " + ts + "\n\n" +
-      "Thank you for visiting! \ud83d\ude4f\nSee you again soon!";
-    const encodedMsg = encodeURIComponent(msg);
-    const appUrl = "whatsapp://send?phone=91" + phone + "&text=" + encodedMsg;
-    const webUrl = "https://wa.me/91" + phone + "?text=" + encodedMsg;
-
-    window.location.href = appUrl;
-    setTimeout(() => {
-      if (document.visibilityState === "visible") {
-        window.location.href = webUrl;
-      }
-    }, 900);
-  }
-
-  // ── PDF BILL ──
-  function downloadPDF() {
-    if (!lastSale) return;
-    const { jsPDF } = window.jspdf;
-    if (!jsPDF) { showToast("PDF library not loaded"); return; }
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 130] });
-    const dt  = new Date(lastSale.time);
-    const ds  = dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
-    const ts  = dt.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
-    const custName = lastSale.name !== "Guest" ? lastSale.name : "Guest";
-    const phone    = lastSale.phone || "—";
-
-    // Header bg
-    doc.setFillColor(10, 36, 99);
-    doc.rect(0, 0, 80, 30, "F");
-
-    // Salon name
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(SALON_NAME, 40, 12, { align: "center" });
-
-    // Subtitle
-    doc.setFontSize(6.5);
-    doc.setFont("helvetica", "normal");
-    doc.text(SALON_ADDR, 40, 18, { align: "center" });
-
-    // Label
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(180, 210, 255);
-    doc.text("BILL RECEIPT", 40, 26, { align: "center" });
-
-    // Divider
-    doc.setDrawColor(59, 130, 246);
-    doc.setLineWidth(0.3);
-    doc.line(6, 33, 74, 33);
-
-    // Rows
-    const L = 8, R = 72;
-    let y = 42;
-    const lh = 8.5;
-
-    function row(label, val) {
-      doc.setFontSize(7.5);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(107, 114, 128);
-      doc.text(label, L, y);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(10, 22, 40);
-      doc.text(String(val), R, y, { align: "right" });
-      y += lh;
-    }
-
-    row("Customer", custName);
-    row("Mobile",   phone);
-    row("Service",  lastSale.service);
-    row("Payment",  lastSale.mode);
-    row("Date",     ds);
-    row("Time",     ts);
-
-    // Total box
-    y += 2;
-    doc.setFillColor(240, 246, 255);
-    doc.roundedRect(6, y, 68, 16, 2, 2, "F");
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(107, 114, 128);
-    doc.text("TOTAL AMOUNT", L + 2, y + 7);
-    doc.setFontSize(13);
-    doc.setTextColor(10, 36, 99);
-    doc.text("Rs. " + lastSale.price, R - 2, y + 10, { align: "right" });
-
-    // Footer
-    y += 22;
-    doc.setDrawColor(191, 219, 254);
-    doc.setLineWidth(0.3);
-    doc.line(6, y, 74, y);
-    y += 6;
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "italic");
-    doc.setTextColor(107, 114, 128);
-    doc.text("Thank you for visiting " + SALON_NAME + "!", 40, y, { align: "center" });
-    y += 5;
-    doc.text("See you again soon!", 40, y, { align: "center" });
-
-    const fname = "Bill_" + custName.replace(/\s+/g, "_") + "_" + dt.getTime() + ".pdf";
-    doc.save(fname);
-    showToast("PDF downloaded!");
-  }
-
-  // ── TOAST ──
   function formatDate(date) {
     return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   }
@@ -995,35 +777,14 @@
     if (yearEl) yearEl.value = now.getFullYear();
   }
 
-  function updateDisplay() {
-    document.getElementById("disp-total").textContent = "\u20b9" + state.total;
-    document.getElementById("disp-customers").textContent = state.customers;
-    document.getElementById("disp-cash").textContent = "\u20b9" + state.cash;
-    document.getElementById("disp-online").textContent = "\u20b9" + state.online;
-  }
-
-  function loadState() {
-    const saved = localStorage.getItem("phs_state");
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved);
-      state = {
-        total: Number(parsed.total) || 0,
-        customers: Number(parsed.customers) || 0,
-        cash: Number(parsed.cash) || 0,
-        online: Number(parsed.online) || 0,
-        history: Array.isArray(parsed.history) ? parsed.history : []
-      };
-    } catch (e) {}
-  }
-
   function syncCustomPriceDisplay() {
     const priceInput = document.getElementById("custom-price");
     const priceLabel = document.querySelector(".services-grid .service-btn .svc-price");
     if (!priceInput || !priceLabel) return;
-    priceLabel.textContent = priceInput.value.trim() ? "\u20b9" + priceInput.value.trim() : "Custom";
+    priceLabel.textContent = priceInput.value.trim() ? "₹" + priceInput.value.trim() : "Custom";
   }
 
+  // ── LOGIN ──
   async function doLogin() {
     const val = document.getElementById("login-input").value;
     if (val !== PASSWORD) {
@@ -1038,11 +799,16 @@
     initHistoryFilters();
     try {
       await openDatabase();
-    } catch (e) {
+    } catch(e) {
       showToast("Local database not available");
     }
   }
 
+  document.getElementById("login-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") doLogin();
+  });
+
+  // ── ADD SALE ──
   async function addSale(service, price) {
     if (price == null) {
       const enteredPrice = Number(document.getElementById("custom-price").value);
@@ -1058,12 +824,16 @@
     const phone = normalizePhone(document.getElementById("cust-phone").value.trim());
     const entry = { service, price, mode, name, phone, time: new Date().toISOString() };
 
+    // Save to IndexedDB
     try {
       entry.dbId = await addSaleToDb(entry);
-    } catch (e) {
+    } catch(e) {
       showToast("Sale save failed");
       return;
     }
+
+    // Send to Google Sheets
+    sendToSheets({ type: "sale", service, price, mode, name, phone, time: entry.time });
 
     state.total += price;
     state.customers += 1;
@@ -1079,16 +849,14 @@
     document.getElementById("cust-phone").value = "";
     document.getElementById("custom-price").value = "";
     syncCustomPriceDisplay();
-    showToast("+" + service + " \u20b9" + price + " (" + mode + ")");
+    showToast("+" + service + " ₹" + price + " (" + mode + ")");
   }
 
+  // ── UNDO ──
   async function undoLast() {
-    if (state.history.length === 0) {
-      showToast("Nothing to undo");
-      return;
-    }
+    if (state.history.length === 0) { showToast("Nothing to undo"); return; }
     const last = state.history.pop();
-    try { await deleteSaleFromDb(last.dbId); } catch (e) {}
+    try { await deleteSaleFromDb(last.dbId); } catch(e) {}
     state.total = Math.max(0, state.total - Number(last.price || 0));
     state.customers = Math.max(0, state.customers - 1);
     if (last.mode === "Cash") state.cash = Math.max(0, state.cash - Number(last.price || 0));
@@ -1098,14 +866,28 @@
     showToast("Undone: " + last.service);
   }
 
+  // ── RESET ──
+  function confirmReset() { document.getElementById("confirm-overlay").classList.add("visible"); }
+  function closeConfirm()  { document.getElementById("confirm-overlay").classList.remove("visible"); }
+
   function doReset() {
     closeConfirm();
+    // Send day report to Sheets before reset
+    sendToSheets({
+      type: "report",
+      total: state.total,
+      customers: state.customers,
+      cash: state.cash,
+      online: state.online,
+      time: new Date().toISOString()
+    });
     state = { total: 0, customers: 0, cash: 0, online: 0, history: [] };
     saveState();
     updateDisplay();
-    showToast("Current totals reset");
+    showToast("Day reset. Report sent to Sheets!");
   }
 
+  // ── BILL SHEET ──
   function openBillSheet(entry) {
     const dt = new Date(entry.time);
     const ph = entry.phone || "—";
@@ -1113,33 +895,32 @@
       "<strong>Customer:</strong> " + entry.name + "<br>" +
       "<strong>Mobile:</strong> " + ph + "<br>" +
       "<strong>Service:</strong> " + entry.service + "<br>" +
-      "<strong>Amount:</strong> \u20b9" + entry.price + "<br>" +
+      "<strong>Amount:</strong> ₹" + entry.price + "<br>" +
       "<strong>Payment:</strong> " + entry.mode + "<br>" +
       "<strong>Date/Time:</strong> " + formatDate(dt) + " " + formatTime(dt);
     document.getElementById("bill-overlay").classList.add("visible");
   }
+  function closeBillSheet() { document.getElementById("bill-overlay").classList.remove("visible"); }
 
+  // ── WHATSAPP ──
   function openWhatsApp() {
     if (!lastSale) return;
     const phone = normalizePhone(lastSale.phone);
-    if (!phone || phone.length < 10) {
-      showToast("No valid mobile number entered");
-      return;
-    }
+    if (!phone || phone.length < 10) { showToast("No valid mobile number entered"); return; }
     const name = lastSale.name !== "Guest" ? lastSale.name : "Customer";
     const dt = new Date(lastSale.time);
     const msg =
-      "\u270c\ufe0f *" + SALON_NAME + "*\n" +
+      "✌️ *" + SALON_NAME + "*\n" +
       SALON_ADDR + "\n" +
       "-----------------\n" +
-      "\ud83d\udc88 *Bill Receipt*\n\n" +
-      "\ud83d\udc64 Customer : " + name + "\n" +
-      "\ud83d\udd27 Service  : " + lastSale.service + "\n" +
-      "\ud83d\udcb0 Amount   : \u20b9" + lastSale.price + "\n" +
-      "\ud83d\udcb3 Payment  : " + lastSale.mode + "\n" +
-      "\ud83d\udcc5 Date     : " + formatDate(dt) + "\n" +
-      "\u23f0 Time     : " + formatTime(dt) + "\n\n" +
-      "Thank you for visiting!";
+      "💈 *Bill Receipt*\n\n" +
+      "👤 Customer : " + name + "\n" +
+      "🔧 Service  : " + lastSale.service + "\n" +
+      "💰 Amount   : ₹" + lastSale.price + "\n" +
+      "💳 Payment  : " + lastSale.mode + "\n" +
+      "📅 Date     : " + formatDate(dt) + "\n" +
+      "⏰ Time     : " + formatTime(dt) + "\n\n" +
+      "Thank you for visiting! 🙏\nSee you again soon!";
     const encodedMsg = encodeURIComponent(msg);
     const appUrl = "whatsapp://send?phone=91" + phone + "&text=" + encodedMsg;
     const webUrl = "https://wa.me/91" + phone + "?text=" + encodedMsg;
@@ -1149,6 +930,86 @@
     }, 700);
   }
 
+  // ── PDF BILL ──
+  function downloadPDF() {
+    if (!lastSale) return;
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) { showToast("PDF library not loaded"); return; }
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 130] });
+    const dt  = new Date(lastSale.time);
+    const ds  = formatDate(dt);
+    const ts  = formatTime(dt);
+    const custName = lastSale.name !== "Guest" ? lastSale.name : "Guest";
+    const phone    = lastSale.phone || "—";
+
+    doc.setFillColor(10, 36, 99);
+    doc.rect(0, 0, 80, 30, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(SALON_NAME, 40, 12, { align: "center" });
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(SALON_ADDR, 40, 18, { align: "center" });
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(180, 210, 255);
+    doc.text("BILL RECEIPT", 40, 26, { align: "center" });
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(0.3);
+    doc.line(6, 33, 74, 33);
+
+    const L = 8, R = 72;
+    let y = 42;
+    const lh = 8.5;
+
+    function row(label, val) {
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(107, 114, 128);
+      doc.text(label, L, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(10, 22, 40);
+      doc.text(String(val), R, y, { align: "right" });
+      y += lh;
+    }
+
+    row("Customer", custName);
+    row("Mobile",   phone);
+    row("Service",  lastSale.service);
+    row("Payment",  lastSale.mode);
+    row("Date",     ds);
+    row("Time",     ts);
+
+    y += 2;
+    doc.setFillColor(240, 246, 255);
+    doc.roundedRect(6, y, 68, 16, 2, 2, "F");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(107, 114, 128);
+    doc.text("TOTAL AMOUNT", L + 2, y + 7);
+    doc.setFontSize(13);
+    doc.setTextColor(10, 36, 99);
+    doc.text("Rs. " + lastSale.price, R - 2, y + 10, { align: "right" });
+
+    y += 22;
+    doc.setDrawColor(191, 219, 254);
+    doc.setLineWidth(0.3);
+    doc.line(6, y, 74, y);
+    y += 6;
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(107, 114, 128);
+    doc.text("Thank you for visiting " + SALON_NAME + "!", 40, y, { align: "center" });
+    y += 5;
+    doc.text("See you again soon!", 40, y, { align: "center" });
+
+    const fname = "Bill_" + custName.replace(/\s+/g, "_") + "_" + dt.getTime() + ".pdf";
+    doc.save(fname);
+    showToast("PDF downloaded!");
+  }
+
+  // ── HISTORY ──
   function setHistoryType(type) {
     historyType = type;
     document.querySelectorAll(".history-tab").forEach(btn => btn.classList.toggle("active", btn.dataset.type === type));
@@ -1182,7 +1043,7 @@
     let sales = [];
     try {
       sales = await getAllSalesFromDb();
-    } catch (e) {
+    } catch(e) {
       summary.textContent = "Database read failed";
       return;
     }
@@ -1197,7 +1058,11 @@
       return acc;
     }, { total: 0, customers: 0, cash: 0, online: 0 });
 
-    summary.innerHTML = "<strong>Sales:</strong> " + filtered.length + " &nbsp; | &nbsp; <strong>Amount:</strong> \u20b9" + totals.total + "<br><strong>Cash:</strong> \u20b9" + totals.cash + " &nbsp; | &nbsp; <strong>Online:</strong> \u20b9" + totals.online;
+    summary.innerHTML =
+      "<strong>Sales:</strong> " + filtered.length +
+      " &nbsp;|&nbsp; <strong>Amount:</strong> ₹" + totals.total +
+      "<br><strong>Cash:</strong> ₹" + totals.cash +
+      " &nbsp;|&nbsp; <strong>Online:</strong> ₹" + totals.online;
 
     if (!filtered.length) {
       list.innerHTML = '<div class="history-empty">No history found for selected filter.</div>';
@@ -1208,10 +1073,21 @@
       const dt = new Date(sale.time);
       const customer = sale.name || "Guest";
       const phone = sale.phone || "No mobile";
-      return '<div class="history-item"><div class="history-item-top"><div class="history-item-title">' + sale.service + '</div><div class="history-item-amount">\u20b9' + sale.price + '</div></div><div class="history-item-meta">' + customer + ' | ' + phone + '<br>' + sale.mode + ' | ' + formatDate(dt) + ' ' + formatTime(dt) + '</div></div>';
+      return '<div class="history-item"><div class="history-item-top"><div class="history-item-title">' + sale.service + '</div><div class="history-item-amount">₹' + sale.price + '</div></div><div class="history-item-meta">' + customer + ' | ' + phone + '<br>' + sale.mode + ' | ' + formatDate(dt) + ' ' + formatTime(dt) + '</div></div>';
     }).join("");
   }
 
+  // ── TOAST ──
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  // ── INIT ──
   document.getElementById("custom-price").addEventListener("input", syncCustomPriceDisplay);
   syncCustomPriceDisplay();
   initHistoryFilters();
@@ -1220,15 +1096,6 @@
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./service-worker.js").catch(() => {});
     });
-  }
-
-  let toastTimer;
-  function showToast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
   }
 </script>
 </body>
