@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Prince Hair Salon</title>
+<meta name="theme-color" content="#0a2463"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="icon" href="icon-192.svg" type="image/svg+xml"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --blue-deep: #0a2463;
+    --blue-mid: #1b4aef;
+    --blue-light: #3b82f6;
+    --blue-pale: #dbeafe;
+    --blue-ghost: #f0f6ff;
+    --white: #ffffff;
+    --text-dark: #0a1628;
+    --text-mid: #374151;
+    --text-soft: #6b7280;
+    --border: #bfdbfe;
+    --shadow: 0 4px 24px rgba(10,36,99,0.12);
+    --shadow-sm: 0 2px 8px rgba(10,36,99,0.08);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--blue-ghost);
+    min-height: 100vh;
+    color: var(--text-dark);
+  }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, var(--blue-deep) 0%, var(--blue-mid) 100%);
+    padding: 24px;
+  }
+  .login-card {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 40px 32px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+    text-align: center;
+  }
+  .login-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    box-shadow: 0 8px 24px rgba(27,74,239,0.35);
+  }
+  .login-card h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--blue-deep);
+    margin-bottom: 4px;
+  }
+  .login-card p {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-bottom: 28px;
+  }
+  .login-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 18px;
+    letter-spacing: 6px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark);
+    outline: none;
+    transition: border 0.2s;
+    margin-bottom: 16px;
+  }
+  .login-input:focus { border-color: var(--blue-mid); }
+  .login-error { color: #dc2626; font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+  .login-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .login-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+  /* ── MAIN APP ── */
+  #main-app { display: none; }
+  #main-app.visible { display: block; }
+
+  header {
+    background: linear-gradient(135deg, var(--blue-deep) 0%, var(--blue-mid) 100%);
+    color: white;
+    text-align: center;
+    padding: 28px 20px 22px;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 6px;
+    background: linear-gradient(90deg, #60a5fa, #1b4aef, #60a5fa);
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header p { font-size: 13px; opacity: 0.82; margin-top: 4px; letter-spacing: 0.3px; }
+
+  .container { padding: 20px 16px 40px; max-width: 480px; margin: 0 auto; }
+
+  /* ── TOTALS ── */
+  .totals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .total-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1.5px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .total-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+  }
+  .total-card.primary::before { background: linear-gradient(90deg, var(--blue-mid), var(--blue-light)); }
+  .total-card.customers::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+  .total-card.cash::before { background: linear-gradient(90deg, #10b981, #059669); }
+  .total-card.online::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
+  .total-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-soft); margin-bottom: 6px; }
+  .total-value { font-size: 26px; font-weight: 700; color: var(--blue-deep); line-height: 1; }
+  .total-value.customers-val { color: #0891b2; }
+  .total-value.cash-val { color: #059669; }
+  .total-value.online-val { color: #7c3aed; }
+
+  /* ── SECTION LABEL ── */
+  .section-label { font-size: 13px; font-weight: 600; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .section-divider { margin-bottom: 16px; }
+
+  /* ── CUSTOMER INFO ── */
+  .customer-info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .price-input-row { margin-top: 12px; }
+  .info-input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark);
+    background: white;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .info-input:focus { border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(27,74,239,0.1); }
+  .info-input::placeholder { color: #aab4c8; }
+
+  /* ── PAYMENT MODE ── */
+  .payment-select {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--blue-deep);
+    background: white;
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231b4aef' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    transition: border-color 0.2s;
+  }
+  .payment-select:focus { border-color: var(--blue-mid); }
+
+  /* ── SERVICE BUTTONS ── */
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .service-btn {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .service-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .service-btn:active { transform: scale(0.96); box-shadow: none; }
+  .service-btn:active::before { opacity: 1; }
+  .service-btn:active .svc-name,
+  .service-btn:active .svc-price { color: white; }
+  .service-btn.combo-btn { grid-column: span 2; }
+  .svc-name { font-size: 16px; font-weight: 700; color: var(--blue-deep); margin-bottom: 4px; position: relative; z-index: 1; transition: color 0.15s; }
+  .svc-price { font-size: 20px; font-weight: 700; color: var(--blue-mid); position: relative; z-index: 1; transition: color 0.15s; }
+
+  /* ── ACTION BUTTONS ── */
+  .actions-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .action-btn {
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .history-btn { background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep)); color: white; box-shadow: 0 4px 16px rgba(27,74,239,0.25); }
+  .history-btn:active { opacity: 0.85; transform: scale(0.97); }
+  .undo-btn { background: white; color: var(--blue-deep); border: 2px solid var(--border); box-shadow: var(--shadow-sm); }
+  .undo-btn:active { background: var(--blue-pale); transform: scale(0.97); }
+  .reset-btn { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; box-shadow: 0 4px 16px rgba(220,38,38,0.25); }
+  .reset-btn:active { opacity: 0.85; transform: scale(0.97); }
+
+  /* ── BILL ACTION SHEET ── */
+  #bill-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,36,99,0.55);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  #bill-overlay.visible { display: flex; }
+  .bill-sheet {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 -8px 40px rgba(10,36,99,0.2);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .bill-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 18px; }
+  .bill-sheet-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--blue-deep); margin-bottom: 14px; text-align: center; }
+  .bill-summary {
+    background: var(--blue-ghost);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.85;
+  }
+  .bill-summary strong { color: var(--blue-deep); font-weight: 600; }
+  .bill-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+  .wa-btn {
+    padding: 14px 10px;
+    background: linear-gradient(135deg, #25d366, #128c46);
+    color: white; border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    box-shadow: 0 4px 14px rgba(37,211,102,0.3);
+    transition: all 0.15s;
+  }
+  .wa-btn:active { opacity: 0.85; transform: scale(0.97); }
+  .pdf-btn {
+    padding: 14px 10px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white; border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    box-shadow: 0 4px 14px rgba(27,74,239,0.3);
+    transition: all 0.15s;
+  }
+  .pdf-btn:active { opacity: 0.85; transform: scale(0.97); }
+  .bill-close-btn {
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+  .bill-close-btn:active { background: var(--blue-ghost); }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--blue-deep);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-size: 14px; font-weight: 500;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(10,36,99,0.3);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── CONFIRM MODAL ── */
+  #confirm-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,36,99,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  #confirm-overlay.visible { display: flex; }
+  .confirm-card { background: white; border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+  .confirm-card h3 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--blue-deep); margin-bottom: 10px; }
+  .confirm-card p { font-size: 14px; color: var(--text-soft); margin-bottom: 24px; }
+  .confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .confirm-cancel { padding: 13px; background: var(--blue-ghost); border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; color: var(--text-mid); cursor: pointer; }
+  .confirm-ok { padding: 13px; background: linear-gradient(135deg, #dc2626, #b91c1c); border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; color: white; cursor: pointer; }
+
+  /* HISTORY */
+  #history-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,36,99,0.55);
+    z-index: 180;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #history-overlay.visible { display: flex; }
+  .history-card {
+    width: 100%;
+    max-width: 480px;
+    max-height: 88vh;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .history-head {
+    padding: 20px 20px 14px;
+    background: linear-gradient(135deg, var(--blue-deep), var(--blue-mid));
+    color: white;
+  }
+  .history-head h3 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 4px; }
+  .history-head p { font-size: 13px; opacity: 0.85; }
+  .history-body { padding: 16px; overflow-y: auto; }
+  .history-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .history-tab {
+    padding: 11px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: white;
+    color: var(--blue-deep);
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+  .history-tab.active {
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-deep));
+    color: white;
+    border-color: transparent;
+  }
+  .history-filter {
+    width: 100%;
+    padding: 13px 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    margin-bottom: 12px;
+  }
+  .history-summary {
+    background: var(--blue-ghost);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 14px;
+    font-size: 14px;
+    color: var(--text-mid);
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .history-item {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .history-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .history-item-title { font-size: 15px; font-weight: 700; color: var(--blue-deep); }
+  .history-item-amount { font-size: 15px; font-weight: 700; color: var(--blue-mid); }
+  .history-item-meta { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+  .history-empty {
+    background: var(--blue-ghost);
+    border: 1.5px dashed var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+    color: var(--text-soft);
+    font-size: 14px;
+  }
+  .history-close {
+    margin: 0 16px 16px;
+    padding: 13px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-soft);
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+
+  @media (max-width: 420px) {
+    .actions-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">✂️</div>
+    <h1>Prince Hair Salon</h1>
+    <p>Shri Muktsar Sahib, Kotkpura Road</p>
+    <input class="login-input" type="password" id="login-input" placeholder="••••••" maxlength="10"/>
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" onclick="doLogin()">Enter</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app">
+  <header>
+    <h1>Prince Hair Salon</h1>
+    <p>Shri Muktsar Sahib, Kotkpura Road</p>
+  </header>
+
+  <div class="container">
+
+    <!-- TOTALS -->
+    <div class="totals-grid">
+      <div class="total-card primary">
+        <div class="total-label">Total Amount</div>
+        <div class="total-value" id="disp-total">₹0</div>
+      </div>
+      <div class="total-card customers">
+        <div class="total-label">Customers</div>
+        <div class="total-value customers-val" id="disp-customers">0</div>
+      </div>
+      <div class="total-card cash">
+        <div class="total-label">Cash</div>
+        <div class="total-value cash-val" id="disp-cash">₹0</div>
+      </div>
+      <div class="total-card online">
+        <div class="total-label">Online</div>
+        <div class="total-value online-val" id="disp-online">₹0</div>
+      </div>
+    </div>
+
+    <!-- CUSTOMER DETAILS -->
+    <div class="section-divider">
+      <div class="section-label">Customer Details</div>
+      <div class="customer-info-row">
+        <input class="info-input" type="text" id="cust-name" placeholder="Name (optional)" maxlength="40" autocomplete="off"/>
+        <input class="info-input" type="tel" id="cust-phone" placeholder="Mobile (optional)" maxlength="10" autocomplete="off" inputmode="numeric"/>
+      </div>
+      <div class="price-input-row">
+        <input class="info-input" type="number" id="custom-price" placeholder="Enter price" min="1" step="1" inputmode="numeric"/>
+      </div>
+    </div>
+
+    <!-- PAYMENT MODE -->
+    <div class="section-divider">
+      <div class="section-label">Payment Mode</div>
+      <select class="payment-select" id="payment-mode">
+        <option value="Cash">💵 Cash</option>
+        <option value="Online">📱 Online</option>
+      </select>
+    </div>
+
+    <!-- SERVICES -->
+    <div class="section-divider">
+      <div class="section-label">Services</div>
+      <div class="services-grid">
+        <div class="service-btn" onclick="addSale('Hair Cut')">
+          <div class="svc-name">Hair Cut</div>
+          <div class="svc-price">₹100</div>
+        </div>
+        <div class="service-btn" onclick="addSale('Shave', 30)">
+          <div class="svc-name">Shave</div>
+          <div class="svc-price">₹30</div>
+        </div>
+        <div class="service-btn combo-btn" onclick="addSale('Combo', 130)">
+          <div class="svc-name">Combo</div>
+          <div class="svc-price">₹130</div>
+        </div>
+        <div class="service-btn" onclick="addSale('Dtan', 150)">
+          <div class="svc-name">Dtan</div>
+          <div class="svc-price">₹150</div>
+        </div>
+        <div class="service-btn" onclick="addSale('Scrubbing', 150)">
+          <div class="svc-name">Scrubbing</div>
+          <div class="svc-price">₹150</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="actions-row">
+      <button class="action-btn history-btn" onclick="openHistory()">History</button>
+      <button class="action-btn undo-btn" onclick="undoLast()">↩ Undo Last</button>
+      <button class="action-btn reset-btn" onclick="confirmReset()">🔄 Reset Day</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- BILL ACTION SHEET -->
+<div id="bill-overlay">
+  <div class="bill-sheet">
+    <div class="bill-sheet-handle"></div>
+    <div class="bill-sheet-title">Bill Ready 🎉</div>
+    <div class="bill-summary" id="bill-summary-text"></div>
+    <div class="bill-actions">
+      <button class="wa-btn" onclick="openWhatsApp()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        WhatsApp
+      </button>
+      <button class="pdf-btn" onclick="downloadPDF()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        PDF Bill
+      </button>
+    </div>
+    <button class="bill-close-btn" onclick="closeBillSheet()">Close</button>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-overlay">
+  <div class="confirm-card">
+    <h3>Reset Day?</h3>
+    <p>This will reset current totals only. History will stay saved in this mobile.</p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-ok" onclick="doReset()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="history-overlay">
+  <div class="history-card">
+    <div class="history-head">
+      <h3>History</h3>
+      <p>Phone database se sales history</p>
+    </div>
+    <div class="history-body">
+      <div class="history-tabs">
+        <button class="history-tab active" data-type="day" onclick="setHistoryType('day')">Day</button>
+        <button class="history-tab" data-type="month" onclick="setHistoryType('month')">Month</button>
+        <button class="history-tab" data-type="year" onclick="setHistoryType('year')">Year</button>
+      </div>
+      <input class="history-filter" id="history-day" type="date" onchange="renderHistory()"/>
+      <input class="history-filter" id="history-month" type="month" onchange="renderHistory()" style="display:none;"/>
+      <input class="history-filter" id="history-year" type="number" min="2000" max="2100" onchange="renderHistory()" style="display:none;"/>
+      <div class="history-summary" id="history-summary">Loading history...</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+    <button class="history-close" onclick="closeHistory()">Close</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ── CONFIG ──
+  const PASSWORD = "123456";
+  const SALON_NAME = "Prince Hair Salon";
+  const SALON_ADDR = "Shri Muktsar Sahib, Kotkpura Road";
+  const DB_NAME = "prince-hair-salon-db";
+  const DB_VERSION = 1;
+  const SALES_STORE = "sales";
+
+  // ── STATE ──
+  let state = { total: 0, customers: 0, cash: 0, online: 0, history: [] };
+  let lastSale = null;
+  let historyType = "day";
+  let dbPromise = null;
+
+  function openDatabase() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(SALES_STORE)) {
+          const store = db.createObjectStore(SALES_STORE, { keyPath: "id", autoIncrement: true });
+          store.createIndex("time", "time", { unique: false });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return dbPromise;
+  }
+
+  async function addSaleToDb(entry) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SALES_STORE, "readwrite");
+      const request = tx.objectStore(SALES_STORE).add(entry);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function deleteSaleFromDb(id) {
+    if (!id) return;
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SALES_STORE, "readwrite");
+      const request = tx.objectStore(SALES_STORE).delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function getAllSalesFromDb() {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SALES_STORE, "readonly");
+      const request = tx.objectStore(SALES_STORE).getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // ── PERSISTENCE ──
+  function loadState() {
+    const saved = localStorage.getItem("phs_state");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      state = {
+        total: Number(parsed.total) || 0,
+        customers: Number(parsed.customers) || 0,
+        cash: Number(parsed.cash) || 0,
+        online: Number(parsed.online) || 0,
+        history: Array.isArray(parsed.history) ? parsed.history : []
+      };
+    } catch(e) {}
+  }
+  function saveState() { localStorage.setItem("phs_state", JSON.stringify(state)); }
+  function updateDisplay() {
+    document.getElementById("disp-total").textContent = "₹" + state.total;
+    document.getElementById("disp-customers").textContent = state.customers;
+    document.getElementById("disp-cash").textContent = "₹" + state.cash;
+    document.getElementById("disp-online").textContent = "₹" + state.online;
+  }
+
+  // ── LOGIN ──
+  function doLogin() {
+    const val = document.getElementById("login-input").value;
+    if (val === PASSWORD) {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("main-app").classList.add("visible");
+      loadState(); updateDisplay();
+    } else {
+      document.getElementById("login-error").textContent = "Incorrect password. Try again.";
+      document.getElementById("login-input").value = "";
+    }
+  }
+  document.getElementById("login-input").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+  document.getElementById("custom-price").addEventListener("input", syncCustomPriceDisplay);
+
+  function syncCustomPriceDisplay() {
+    const priceInput = document.getElementById("custom-price");
+    const priceLabel = document.getElementById("custom-price-display") || document.querySelector(".services-grid .service-btn .svc-price");
+    if (!priceInput || !priceLabel) return;
+    priceLabel.textContent = priceInput.value.trim() ? "Rs." + priceInput.value.trim() : "Custom";
+  }
+  syncCustomPriceDisplay();
+
+  // ── ADD SALE ──
+  function addSale(service, price) {
+    if (price == null) {
+      const enteredPrice = Number(document.getElementById("custom-price").value);
+      if (!Number.isFinite(enteredPrice) || enteredPrice <= 0) {
+        showToast("Please enter a valid price");
+        return;
+      }
+      price = enteredPrice;
+    }
+
+    const mode  = document.getElementById("payment-mode").value;
+    const name  = document.getElementById("cust-name").value.trim() || "Guest";
+    const phone = document.getElementById("cust-phone").value.trim();
+
+    state.total += price;
+    state.customers += 1;
+    if (mode === "Cash") state.cash += price;
+    else state.online += price;
+
+    const entry = { service, price, mode, name, phone, time: new Date().toISOString() };
+    state.history.push(entry);
+    saveState();
+    updateDisplay();
+    sendToSheets({ type: "sale", service, price, mode, name, phone });
+    showToast("+" + service + " ₹" + price + " (" + mode + ")");
+
+    lastSale = entry;
+    openBillSheet(entry);
+
+    // Clear customer fields for next customer
+    document.getElementById("cust-name").value = "";
+    document.getElementById("cust-phone").value = "";
+    document.getElementById("custom-price").value = "";
+    syncCustomPriceDisplay();
+  }
+
+  // ── UNDO ──
+  function undoLast() {
+    if (state.history.length === 0) { showToast("Nothing to undo"); return; }
+    const last = state.history.pop();
+    state.total -= last.price;
+    state.customers -= 1;
+    if (last.mode === "Cash") state.cash -= last.price;
+    else state.online -= last.price;
+    saveState(); updateDisplay();
+    showToast("Undone: " + last.service);
+  }
+
+  // ── RESET ──
+  function confirmReset() { document.getElementById("confirm-overlay").classList.add("visible"); }
+  function closeConfirm()  { document.getElementById("confirm-overlay").classList.remove("visible"); }
+  async function doReset() {
+    closeConfirm();
+    await sendToSheets({ type: "report", total: state.total, customers: state.customers, cash: state.cash, online: state.online });
+    state = { total: 0, customers: 0, cash: 0, online: 0, history: [] };
+    saveState(); updateDisplay();
+    showToast("Day reset. Report sent!");
+  }
+
+  // ── GOOGLE SHEETS ──
+  async function sendToSheets(data) {
+    if (!SHEETS_URL) return;
+    try {
+      await fetch(SHEETS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    } catch(e) {}
+  }
+
+  // ── BILL SHEET ──
+  function openBillSheet(e) {
+    const dt = new Date(e.time);
+    const ds = dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+    const ts = dt.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+    const ph = e.phone || "—";
+    document.getElementById("bill-summary-text").innerHTML =
+      "<strong>Customer:</strong> " + e.name + "<br>" +
+      "<strong>Mobile:</strong> " + ph + "<br>" +
+      "<strong>Service:</strong> " + e.service + "<br>" +
+      "<strong>Amount:</strong> ₹" + e.price + "<br>" +
+      "<strong>Payment:</strong> " + e.mode + "<br>" +
+      "<strong>Date/Time:</strong> " + ds + " " + ts;
+    document.getElementById("bill-overlay").classList.add("visible");
+  }
+  function closeBillSheet() { document.getElementById("bill-overlay").classList.remove("visible"); }
+
+  // ── WHATSAPP ──
+  function openWhatsApp() {
+    if (!lastSale) return;
+    const phone = lastSale.phone;
+    if (!phone || phone.length < 10) { showToast("No valid mobile number entered"); return; }
+    const name = lastSale.name !== "Guest" ? lastSale.name : "Customer";
+    const dt = new Date(lastSale.time);
+    const ds = dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+    const ts = dt.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+    const msg =
+      "\u270c\ufe0f *" + SALON_NAME + "*\n" +
+      SALON_ADDR + "\n" +
+      "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" +
+      "\ud83d\udc88 *Bill Receipt*\n\n" +
+      "\ud83d\udc64 Customer : " + name + "\n" +
+      "\ud83d\udd27 Service  : " + lastSale.service + "\n" +
+      "\ud83d\udcb0 Amount   : \u20b9" + lastSale.price + "\n" +
+      "\ud83d\udcb3 Payment  : " + lastSale.mode + "\n" +
+      "\ud83d\udcc5 Date     : " + ds + "\n" +
+      "\u23f0 Time     : " + ts + "\n\n" +
+      "Thank you for visiting! \ud83d\ude4f\nSee you again soon!";
+    const encodedMsg = encodeURIComponent(msg);
+    const appUrl = "whatsapp://send?phone=91" + phone + "&text=" + encodedMsg;
+    const webUrl = "https://wa.me/91" + phone + "?text=" + encodedMsg;
+
+    window.location.href = appUrl;
+    setTimeout(() => {
+      if (document.visibilityState === "visible") {
+        window.location.href = webUrl;
+      }
+    }, 900);
+  }
+
+  // ── PDF BILL ──
+  function downloadPDF() {
+    if (!lastSale) return;
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) { showToast("PDF library not loaded"); return; }
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 130] });
+    const dt  = new Date(lastSale.time);
+    const ds  = dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+    const ts  = dt.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+    const custName = lastSale.name !== "Guest" ? lastSale.name : "Guest";
+    const phone    = lastSale.phone || "—";
+
+    // Header bg
+    doc.setFillColor(10, 36, 99);
+    doc.rect(0, 0, 80, 30, "F");
+
+    // Salon name
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(SALON_NAME, 40, 12, { align: "center" });
+
+    // Subtitle
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(SALON_ADDR, 40, 18, { align: "center" });
+
+    // Label
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(180, 210, 255);
+    doc.text("BILL RECEIPT", 40, 26, { align: "center" });
+
+    // Divider
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(0.3);
+    doc.line(6, 33, 74, 33);
+
+    // Rows
+    const L = 8, R = 72;
+    let y = 42;
+    const lh = 8.5;
+
+    function row(label, val) {
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(107, 114, 128);
+      doc.text(label, L, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(10, 22, 40);
+      doc.text(String(val), R, y, { align: "right" });
+      y += lh;
+    }
+
+    row("Customer", custName);
+    row("Mobile",   phone);
+    row("Service",  lastSale.service);
+    row("Payment",  lastSale.mode);
+    row("Date",     ds);
+    row("Time",     ts);
+
+    // Total box
+    y += 2;
+    doc.setFillColor(240, 246, 255);
+    doc.roundedRect(6, y, 68, 16, 2, 2, "F");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(107, 114, 128);
+    doc.text("TOTAL AMOUNT", L + 2, y + 7);
+    doc.setFontSize(13);
+    doc.setTextColor(10, 36, 99);
+    doc.text("Rs. " + lastSale.price, R - 2, y + 10, { align: "right" });
+
+    // Footer
+    y += 22;
+    doc.setDrawColor(191, 219, 254);
+    doc.setLineWidth(0.3);
+    doc.line(6, y, 74, y);
+    y += 6;
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(107, 114, 128);
+    doc.text("Thank you for visiting " + SALON_NAME + "!", 40, y, { align: "center" });
+    y += 5;
+    doc.text("See you again soon!", 40, y, { align: "center" });
+
+    const fname = "Bill_" + custName.replace(/\s+/g, "_") + "_" + dt.getTime() + ".pdf";
+    doc.save(fname);
+    showToast("PDF downloaded!");
+  }
+
+  // ── TOAST ──
+  function formatDate(date) {
+    return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  function formatTime(date) {
+    return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function normalizePhone(phone) {
+    return String(phone || "").replace(/\D/g, "").slice(-10);
+  }
+
+  function initHistoryFilters() {
+    const now = new Date();
+    const dayEl = document.getElementById("history-day");
+    const monthEl = document.getElementById("history-month");
+    const yearEl = document.getElementById("history-year");
+    if (dayEl) dayEl.value = now.toISOString().slice(0, 10);
+    if (monthEl) monthEl.value = now.toISOString().slice(0, 7);
+    if (yearEl) yearEl.value = now.getFullYear();
+  }
+
+  function updateDisplay() {
+    document.getElementById("disp-total").textContent = "\u20b9" + state.total;
+    document.getElementById("disp-customers").textContent = state.customers;
+    document.getElementById("disp-cash").textContent = "\u20b9" + state.cash;
+    document.getElementById("disp-online").textContent = "\u20b9" + state.online;
+  }
+
+  function loadState() {
+    const saved = localStorage.getItem("phs_state");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      state = {
+        total: Number(parsed.total) || 0,
+        customers: Number(parsed.customers) || 0,
+        cash: Number(parsed.cash) || 0,
+        online: Number(parsed.online) || 0,
+        history: Array.isArray(parsed.history) ? parsed.history : []
+      };
+    } catch (e) {}
+  }
+
+  function syncCustomPriceDisplay() {
+    const priceInput = document.getElementById("custom-price");
+    const priceLabel = document.querySelector(".services-grid .service-btn .svc-price");
+    if (!priceInput || !priceLabel) return;
+    priceLabel.textContent = priceInput.value.trim() ? "\u20b9" + priceInput.value.trim() : "Custom";
+  }
+
+  async function doLogin() {
+    const val = document.getElementById("login-input").value;
+    if (val !== PASSWORD) {
+      document.getElementById("login-error").textContent = "Incorrect password. Try again.";
+      document.getElementById("login-input").value = "";
+      return;
+    }
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("main-app").classList.add("visible");
+    loadState();
+    updateDisplay();
+    initHistoryFilters();
+    try {
+      await openDatabase();
+    } catch (e) {
+      showToast("Local database not available");
+    }
+  }
+
+  async function addSale(service, price) {
+    if (price == null) {
+      const enteredPrice = Number(document.getElementById("custom-price").value);
+      if (!Number.isFinite(enteredPrice) || enteredPrice <= 0) {
+        showToast("Please enter a valid price");
+        return;
+      }
+      price = enteredPrice;
+    }
+
+    const mode = document.getElementById("payment-mode").value;
+    const name = document.getElementById("cust-name").value.trim() || "Guest";
+    const phone = normalizePhone(document.getElementById("cust-phone").value.trim());
+    const entry = { service, price, mode, name, phone, time: new Date().toISOString() };
+
+    try {
+      entry.dbId = await addSaleToDb(entry);
+    } catch (e) {
+      showToast("Sale save failed");
+      return;
+    }
+
+    state.total += price;
+    state.customers += 1;
+    if (mode === "Cash") state.cash += price;
+    else state.online += price;
+    state.history.push(entry);
+    saveState();
+    updateDisplay();
+    lastSale = entry;
+    openBillSheet(entry);
+
+    document.getElementById("cust-name").value = "";
+    document.getElementById("cust-phone").value = "";
+    document.getElementById("custom-price").value = "";
+    syncCustomPriceDisplay();
+    showToast("+" + service + " \u20b9" + price + " (" + mode + ")");
+  }
+
+  async function undoLast() {
+    if (state.history.length === 0) {
+      showToast("Nothing to undo");
+      return;
+    }
+    const last = state.history.pop();
+    try { await deleteSaleFromDb(last.dbId); } catch (e) {}
+    state.total = Math.max(0, state.total - Number(last.price || 0));
+    state.customers = Math.max(0, state.customers - 1);
+    if (last.mode === "Cash") state.cash = Math.max(0, state.cash - Number(last.price || 0));
+    else state.online = Math.max(0, state.online - Number(last.price || 0));
+    saveState();
+    updateDisplay();
+    showToast("Undone: " + last.service);
+  }
+
+  function doReset() {
+    closeConfirm();
+    state = { total: 0, customers: 0, cash: 0, online: 0, history: [] };
+    saveState();
+    updateDisplay();
+    showToast("Current totals reset");
+  }
+
+  function openBillSheet(entry) {
+    const dt = new Date(entry.time);
+    const ph = entry.phone || "—";
+    document.getElementById("bill-summary-text").innerHTML =
+      "<strong>Customer:</strong> " + entry.name + "<br>" +
+      "<strong>Mobile:</strong> " + ph + "<br>" +
+      "<strong>Service:</strong> " + entry.service + "<br>" +
+      "<strong>Amount:</strong> \u20b9" + entry.price + "<br>" +
+      "<strong>Payment:</strong> " + entry.mode + "<br>" +
+      "<strong>Date/Time:</strong> " + formatDate(dt) + " " + formatTime(dt);
+    document.getElementById("bill-overlay").classList.add("visible");
+  }
+
+  function openWhatsApp() {
+    if (!lastSale) return;
+    const phone = normalizePhone(lastSale.phone);
+    if (!phone || phone.length < 10) {
+      showToast("No valid mobile number entered");
+      return;
+    }
+    const name = lastSale.name !== "Guest" ? lastSale.name : "Customer";
+    const dt = new Date(lastSale.time);
+    const msg =
+      "\u270c\ufe0f *" + SALON_NAME + "*\n" +
+      SALON_ADDR + "\n" +
+      "-----------------\n" +
+      "\ud83d\udc88 *Bill Receipt*\n\n" +
+      "\ud83d\udc64 Customer : " + name + "\n" +
+      "\ud83d\udd27 Service  : " + lastSale.service + "\n" +
+      "\ud83d\udcb0 Amount   : \u20b9" + lastSale.price + "\n" +
+      "\ud83d\udcb3 Payment  : " + lastSale.mode + "\n" +
+      "\ud83d\udcc5 Date     : " + formatDate(dt) + "\n" +
+      "\u23f0 Time     : " + formatTime(dt) + "\n\n" +
+      "Thank you for visiting!";
+    const encodedMsg = encodeURIComponent(msg);
+    const appUrl = "whatsapp://send?phone=91" + phone + "&text=" + encodedMsg;
+    const webUrl = "https://wa.me/91" + phone + "?text=" + encodedMsg;
+    window.location.href = appUrl;
+    setTimeout(() => {
+      if (document.visibilityState === "visible") window.location.href = webUrl;
+    }, 700);
+  }
+
+  function setHistoryType(type) {
+    historyType = type;
+    document.querySelectorAll(".history-tab").forEach(btn => btn.classList.toggle("active", btn.dataset.type === type));
+    document.getElementById("history-day").style.display = type === "day" ? "block" : "none";
+    document.getElementById("history-month").style.display = type === "month" ? "block" : "none";
+    document.getElementById("history-year").style.display = type === "year" ? "block" : "none";
+    renderHistory();
+  }
+
+  function openHistory() {
+    document.getElementById("history-overlay").classList.add("visible");
+    renderHistory();
+  }
+
+  function closeHistory() {
+    document.getElementById("history-overlay").classList.remove("visible");
+  }
+
+  function saleMatchesFilter(sale) {
+    const date = new Date(sale.time);
+    if (historyType === "day") return sale.time.slice(0, 10) === document.getElementById("history-day").value;
+    if (historyType === "month") return sale.time.slice(0, 7) === document.getElementById("history-month").value;
+    return String(date.getFullYear()) === String(document.getElementById("history-year").value);
+  }
+
+  async function renderHistory() {
+    const summary = document.getElementById("history-summary");
+    const list = document.getElementById("history-list");
+    summary.textContent = "Loading history...";
+    list.innerHTML = "";
+    let sales = [];
+    try {
+      sales = await getAllSalesFromDb();
+    } catch (e) {
+      summary.textContent = "Database read failed";
+      return;
+    }
+
+    const filtered = sales.filter(saleMatchesFilter).sort((a, b) => new Date(b.time) - new Date(a.time));
+    const totals = filtered.reduce((acc, sale) => {
+      const amount = Number(sale.price) || 0;
+      acc.total += amount;
+      acc.customers += 1;
+      if (sale.mode === "Cash") acc.cash += amount;
+      else acc.online += amount;
+      return acc;
+    }, { total: 0, customers: 0, cash: 0, online: 0 });
+
+    summary.innerHTML = "<strong>Sales:</strong> " + filtered.length + " &nbsp; | &nbsp; <strong>Amount:</strong> \u20b9" + totals.total + "<br><strong>Cash:</strong> \u20b9" + totals.cash + " &nbsp; | &nbsp; <strong>Online:</strong> \u20b9" + totals.online;
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="history-empty">No history found for selected filter.</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(sale => {
+      const dt = new Date(sale.time);
+      const customer = sale.name || "Guest";
+      const phone = sale.phone || "No mobile";
+      return '<div class="history-item"><div class="history-item-top"><div class="history-item-title">' + sale.service + '</div><div class="history-item-amount">\u20b9' + sale.price + '</div></div><div class="history-item-meta">' + customer + ' | ' + phone + '<br>' + sale.mode + ' | ' + formatDate(dt) + ' ' + formatTime(dt) + '</div></div>';
+    }).join("");
+  }
+
+  document.getElementById("custom-price").addEventListener("input", syncCustomPriceDisplay);
+  syncCustomPriceDisplay();
+  initHistoryFilters();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    });
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+</script>
+</body>
+</html>

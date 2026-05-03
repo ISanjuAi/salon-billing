@@ -1,0 +1,22 @@
+{
+  "name": "Prince Hair Salon",
+  "short_name": "Salon",
+  "start_url": "./billing00.html",
+  "display": "standalone",
+  "background_color": "#f0f6ff",
+  "theme_color": "#0a2463",
+  "icons": [
+    {
+      "src": "./icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
